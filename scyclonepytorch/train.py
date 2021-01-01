@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 from argparse import Namespace
+from pathlib import Path
 
 import torch
 import pytorch_lightning as pl
@@ -28,7 +29,6 @@ def train(args: Namespace, datamodule: LightningDataModule) -> None:
         max_epochs=args.max_epochs,
         check_val_every_n_epoch=args.val_interval_epoch,
         # logging/checkpointing
-        resume_from_checkpoint=ckptAndLogging.resume_from_checkpoint,
         default_root_dir=ckptAndLogging.default_root_dir,
         checkpoint_callback=ckpt_cb,
         logger=pl_loggers.TensorBoardLogger(
@@ -39,9 +39,12 @@ def train(args: Namespace, datamodule: LightningDataModule) -> None:
         progress_bar_refresh_rate=30
     )
 
+    # resume when checkpoint exists
+    if Path(ckptAndLogging.resume_from_checkpoint).exists():
+        trainer.resume_from_checkpoint = ckptAndLogging.resume_from_checkpoint
+
     # training
     trainer.fit(model, datamodule=datamodule)
-
 
 class CheckpointAndLogging:
     """Generate path of checkpoint & logging.
@@ -80,5 +83,3 @@ class CheckpointAndLogging:
         self.save_dir = dir_root
         self.name = name_exp
         self.version = name_version
-
-
